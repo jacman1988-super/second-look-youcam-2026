@@ -1,0 +1,52 @@
+YOUCAM SECOND LOOK — SYNTHETIC TEST INPUTS
+Created 2026-10-31, approximately 22:20 UTC (23:20 Europe/Warsaw).
+Purpose: new synthetic person and garment INPUTS for a later virtual clothing try-on test.
+These files are NOT YouCam outputs, NOT a performed try-on, and NOT proof of a working provider call.
+
+METHOD AND PROVENANCE
+- Built-in image_gen tool only, in its default mode.
+- Two separate generation calls, one for each distinct asset. No reference images were supplied.
+- Exact backend model/version is not exposed in the returned tool metadata; no model version is invented here.
+- No CLI fallback, direct OpenAI API runner, API key, Runway, ElevenLabs or YouCam call was used.
+- The tool did not report a currency charge or credit total; this manifest makes no unsupported zero-cost claim.
+- Both images are original generated synthetic inputs. The person prompt specifies a wholly fictional adult woman aged 35–40, with no real person or celebrity reference. No real person's photograph or biometric input was used.
+- The dress is an invented, unbranded garment design. No brand/designer reference was supplied.
+- The generated original PNGs were copied byte-for-byte from the default .codex/generated_images location into this owned project folder. Originals were left in place. No crop, retouch, resize or alpha/background change was performed.
+- Existing Second Look prototype files were not changed. No image was uploaded, published, or sent to a try-on provider.
+
+ASSET 1
+File: synthetic-adult-person-input.png
+Default generated original:
+[Host-specific original path retained locally; omitted from public source.]
+Format: PNG, 1024 x 1536, RGB, opaque.
+Bytes: 1512065
+SHA-256: d729c018fe4969390ad48f383e1c8f830d0384b027d6cc2306f0e0fcef3a24ac
+Inspection: local copy viewed with view_image; complete head-to-shoes framing, both hands/feet visible, front-facing natural pose, arms slightly away, light gray T-shirt, navy jeans, simple shoes, white studio backdrop. Fully clothed and non-sensual. No visible logo/text/watermark found.
+
+Exact generation prompt:
+Use case: photorealistic-natural.
+Asset type: synthetic person INPUT for a virtual clothing try-on test, not a try-on result.
+Create a photorealistic studio catalogue image of one entirely fictional adult woman aged 35–40, not based on any real person or celebrity. Natural adult proportions and ordinary, realistic skin texture. She stands upright front-facing, full body from the top of her head to the soles of her shoes, with generous clean margins above, below and on both sides. Arms relaxed slightly away from her torso so the torso and clothing silhouette remain visible; hands not covering the waist or hips; feet comfortably apart. Wear a plain light gray crew-neck T-shirt, plain navy straight-leg jeans and simple closed-toe flat shoes. Fully clothed, neutral, non-sensual pose and expression. Keep her hair off the shoulders/clothes for a clean garment outline.
+Neutral seamless white studio background, even soft lighting, camera straight-on at natural perspective, no extreme wide-angle distortion. Portrait composition, preferably 1024 x 1536 pixels. Opaque image.
+Only one person. No text, logos, brand marks, captions, visible watermark, jewellery, props or extra garments. Keep the entire head, both arms/hands, legs and both shoes intact and visible. This must look like a new fictional catalogue photograph, not a real person's likeness.
+
+ASSET 2
+File: teal-linen-dress-input.png
+Default generated original:
+[Host-specific original path retained locally; omitted from public source.]
+Format: PNG, 1024 x 1536, RGB, opaque.
+Bytes: 2054871
+SHA-256: bde7df09b3294ab0d9f1d267c1ce455ebd0dba1e46d996e079a44805513b5e5d
+Inspection: local copy viewed with view_image; one complete teal linen dress, front flat-lay, plain white background, all sleeve edges/neckline/hem visible, no model or accessories. No visible logo/text/watermark found.
+
+Exact generation prompt:
+Use case: product-mockup.
+Asset type: synthetic garment INPUT for a virtual clothing try-on test, not a try-on result.
+Create an original, unbranded teal linen midi dress in a front-facing flat-lay catalogue photograph on a clean plain white background. One garment only, centered, complete from neckline and both sleeve tips through the entire hem, with generous white margins around every edge. Modest round neckline, short sleeves, simple sewn waist and gently A-line midi skirt. Realistic linen weave, seams and soft natural fabric folds; a clean, clearly readable dress silhouette and true teal colour. It is an invented garment design, not a copy of a known brand or designer.
+Top-down flat-lay, even soft studio lighting, neutral perspective and minimal soft shadow. Portrait composition, preferably 1024 x 1536 pixels. Opaque image.
+No model, no person, no visible body parts, no mannequin, no hanger, no shoes, no belt, no accessories, no extra garments. No text, labels, logos, brand marks, captions or visible watermark. Do not crop or duplicate any part of the dress.
+
+TECHNICAL CHECK
+Both PNGs passed Pillow verify(); actual dimensions and RGB/opaque status were read from the saved files. File size/hash above describe the unchanged project copies.
+No YouCam compatibility or output quality is claimed before an actual separately authorized provider test.
+
