@@ -103,21 +103,22 @@ localTest('wrong content type, malformed JSON and oversized bodies return safe e
 });
 
 localTest('malformed key types, lengths and control characters do not leak or activate live mode',async h=>{
-  for(const key of [null,17,{},[],false,'short','x'.repeat(4_097),'SyntheticKey\nWithNewline','SyntheticKey\rWithReturn','SyntheticKey\u0000WithNull','SyntheticKey\tWithTab']) {
+  for(const key of [null,17,{},[],false,'','   ','x'.repeat(4_097),'SyntheticKey\nWithNewline','SyntheticKey\rWithReturn','SyntheticKey\u0000WithNull','SyntheticKey\tWithTab']) {
     const result=await h.request('/api/connect',{method:'POST',payload:{apiKey:key}});
     assert.equal(result.status,400);
-    if(typeof key==='string')noSecret(result,key);
+    if(typeof key==='string'&&key.trim())noSecret(result,key);
   }
   const missing=await h.request('/api/connect',{method:'POST',payload:{}});assert.equal(missing.status,400);
   assert.equal((await h.request('/api/status')).json.live,false);assert.equal(h.providerCalls.length,0);
 });
 
 localTest('valid boundary key lengths work while a later invalid key leaves the prior session intact',async h=>{
-  for(const key of ['a'.repeat(16),'b'.repeat(4_096),KEY_A]) {
+  for(const key of ['a','short','b'.repeat(4_096),KEY_A]) {
     const result=await h.request('/api/connect',{method:'POST',payload:{apiKey:key}});
-    assert.equal(result.status,200);noSecret(result,key);
+    assert.equal(result.status,200);if(key.length>1)noSecret(result,key);
   }
-  assert.equal((await h.request('/api/connect',{method:'POST',payload:{apiKey:'bad'}})).status,400);
+  assert.equal(h.providerCalls.length,0);
+  assert.equal((await h.request('/api/connect',{method:'POST',payload:{apiKey:'bad key'}})).status,400);
   assert.equal((await h.request('/api/status')).json.live,true);
   const task=await h.request('/api/try-on',{method:'POST',payload:IMAGES});assert.equal(task.status,202);
   assert.equal(h.providerCalls[0].options.headers.Authorization,`Bearer ${KEY_A}`);

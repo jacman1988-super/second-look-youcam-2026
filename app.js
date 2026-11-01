@@ -16,11 +16,24 @@ const connectErrors=new Map([
  ['Local connection could not be completed. Check the key and try again. No provider request was made.','The local input format or request size was rejected.']
 ]);
 async function connectError(r){let category='The local server rejected this request.';try{const d=await r.json();category=connectErrors.get(d?.error)||category;}catch{}const code=Number.isInteger(r.status)&&r.status>=100&&r.status<=599?r.status:'unknown';return `Local connection failed (HTTP ${code}). ${category} No generation was started.`;}
+function keyFormatIssue(token){
+ // Static reasons only: never include the token, a fragment, or its length.
+ if(/^Bearer\s/i.test(token))return 'A Bearer prefix is present. Paste the API key alone.';
+ if(/["'\u2018\u2019\u201c\u201d`]/.test(token))return 'Quotation marks are present. Paste the API key without quotes.';
+ if(/[*\u2022\u25cf\u2026]/.test(token))return 'A masking or truncation character is present. Copy the complete secret from its creation dialog.';
+ if(/\s/.test(token))return 'Whitespace is present inside the key. Paste the secret as one token.';
+ if(/[^\x00-\x7f]/.test(token))return 'A non-ASCII character is present. Copy the original API secret without changing its characters.';
+ if(/[\x00-\x1f\x7f]/.test(token))return 'A control character is present. Copy the original API secret again.';
+ if(token.length>4096)return 'The input exceeds the supported size limit. Paste only the API secret.';
+ if(/=[^=]/.test(token))return 'Padding is present before the end of the token. Copy the original API secret again.';
+ if(!/^[-A-Za-z0-9._~+/]+=*$/.test(token))return 'A character outside standard Bearer token syntax is present. Copy the original API secret again.';
+ return null;
+}
 refresh(true);
 $('#connectForm').onsubmit=async e=>{e.preventDefault();if($('#connectButton').disabled)return;const input=$('#apiKey');let apiKey=input.value.trim();input.value='';$('#connectButton').disabled=true;
  try{
   if(!apiKey){$('#connectStatus').textContent='Paste your YouCam API key, then choose Load key locally. No generation was started.';return;}
-  if(apiKey.length<16||apiKey.length>4096||!/^[-A-Za-z0-9._~+/]+=*$/.test(apiKey)){$('#connectStatus').textContent='The local key format is invalid. Paste the complete, unmasked ASCII Bearer token (16–4096 characters), without a prefix or quotes. No generation was started.';return;}
+  const issue=keyFormatIssue(apiKey);if(issue){$('#connectStatus').textContent=`The local key format is invalid. ${issue} No connection or provider request was made by this attempt. No generation was started.`;return;}
   $('#connectStatus').textContent='Connecting to the local server. No generation is being started.';
   const request=fetch('/api/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey})});apiKey='';
   const r=await request;if(!r.ok){$('#connectStatus').textContent=await connectError(r);return;}

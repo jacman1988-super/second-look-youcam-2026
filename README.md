@@ -2,7 +2,7 @@
 
 A local outfit exploration prototype for second-hand shopping: visualize a possible style, compare it with the original photo, then check the details an AI image cannot establish.
 
-**Status:** 45 automated tests pass using controlled provider stubs. Two authorized live-generation attempts failed: one request was rejected and another returned a local error whose cause is unconfirmed. No provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
+**Status:** 47 automated tests pass using controlled provider stubs. Two authorized live-generation attempts failed: one request was rejected and another returned a local error whose cause is unconfirmed. No provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
 
 ## What it does
 
@@ -50,7 +50,7 @@ POSIX shell:
 YOUCAM_ALLOW_LOCAL_CONNECT=yes YOUCAM_MAX_TASKS=1 node server.mjs
 ```
 
-In the local page, expand **Connect YouCam locally** and paste the key yourself into its password field. Do not send it through chat, an agent, an issue, source code or a screenshot. The field clears after every attempt. It is sent only to this same-origin loopback server and held in server RAM; it is never echoed, logged or written to a file by the app. Stopping the server discards that runtime copy.
+In the local page, expand **Connect YouCam locally** and paste the key yourself into its password field. Do not send it through chat, an agent, an issue, source code or a screenshot. The field clears after every attempt. It is sent only to this same-origin loopback server and held in server RAM; it is never echoed, logged or written to a file by the app. Stopping the server discards that runtime copy. Local syntax validation accepts a nonempty RFC6750 Bearer token up to4096characters; it does not invent a provider minimum length. Invalid input produces only a static reason, never the key, a fragment, its length or an offset. Token syntax does not establish provider authentication.
 
 Loading a key enables the live path but does **not** verify the credential with YouCam, send image URLs, create a task or consume API units. `/api/connect` and `/api/status` make no provider requests. Status returns only safe local state, never the key. A loaded key is not a successful provider test.
 

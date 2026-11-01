@@ -24,7 +24,7 @@ const limit=Number.isFinite(parsedLimit)?Math.min(3,Math.max(0,Math.floor(parsed
 function bearerToken(value){
  if(typeof value!=='string')throw Error('Invalid local key.');
  const token=value.trim();
- if(token.length<16||token.length>4096||!/^[-A-Za-z0-9._~+/]+=*$/.test(token))throw Error('Invalid local key.');
+ if(!token||token.length>4096||!/^[-A-Za-z0-9._~+/]+=*$/.test(token))throw Error('Invalid local key.');
  return token;
 }
 // Only bounded numeric statuses and our own static labels may reach the UI.
