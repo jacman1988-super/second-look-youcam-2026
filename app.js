@@ -17,16 +17,13 @@ const connectErrors=new Map([
 ]);
 async function connectError(r){let category='The local server rejected this request.';try{const d=await r.json();category=connectErrors.get(d?.error)||category;}catch{}const code=Number.isInteger(r.status)&&r.status>=100&&r.status<=599?r.status:'unknown';return `Local connection failed (HTTP ${code}). ${category} No generation was started.`;}
 function keyFormatIssue(token){
- // Static reasons only: never include the token, a fragment, or its length.
+ // Transport checks only: the provider does not document a key alphabet.
+ // Static reasons never include the token, a fragment, or its length.
  if(/^Bearer\s/i.test(token))return 'A Bearer prefix is present. Paste the API key alone.';
- if(/["'\u2018\u2019\u201c\u201d`]/.test(token))return 'Quotation marks are present. Paste the API key without quotes.';
- if(/[*\u2022\u25cf\u2026]/.test(token))return 'A masking or truncation character is present. Copy the complete secret from its creation dialog.';
- if(/\s/.test(token))return 'Whitespace is present inside the key. Paste the secret as one token.';
+ if(/[\x09-\x0d\x20]/.test(token))return 'Whitespace is present inside the key. Paste the API key itself as one token.';
  if(/[^\x00-\x7f]/.test(token))return 'A non-ASCII character is present. Copy the original API secret without changing its characters.';
  if(/[\x00-\x1f\x7f]/.test(token))return 'A control character is present. Copy the original API secret again.';
  if(token.length>4096)return 'The input exceeds the supported size limit. Paste only the API secret.';
- if(/=[^=]/.test(token))return 'Padding is present before the end of the token. Copy the original API secret again.';
- if(!/^[-A-Za-z0-9._~+/]+=*$/.test(token))return 'A character outside standard Bearer token syntax is present. Copy the original API secret again.';
  return null;
 }
 refresh(true);

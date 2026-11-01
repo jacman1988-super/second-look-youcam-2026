@@ -97,11 +97,11 @@ test('explicit zero cap allows safe local connection but prevents every generati
  }});
 });
 
-test('RFC6750 validation trims outer whitespace and rejects masks, non-ASCII and internal spaces without replacing a valid key',async()=>{
- const valid='Synthetic.Token...-._~+/12345==';
+test('opaque visible-ASCII key is preserved while non-ASCII and internal whitespace cannot replace it',async()=>{
+ const valid='SyntheticOpaque_'+Array.from({length:94},(_,i)=>String.fromCharCode(33+i)).join('');
  await exercise((url,options)=>{assert.equal(options.headers.Authorization,`Bearer ${valid}`);return {ok:false,status:401,json:async()=>({status:401})};},null,{setup:async h=>{
   assert.equal((await h.request('/api/connect',{apiKey:` \t${valid}\r\n `})).status,200);
-  for(const invalid of ['Synthetic****Masked12345','Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic Key With Spaces','Synthetic=MiddlePadding12345','Bearer SyntheticPrefix12345']){
+  for(const invalid of ['Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic Key With Spaces','Synthetic\u0000Control12345','Synthetic\u007fControl12345','Bearer SyntheticPrefix12345']){
    const result=await h.request('/api/connect',{apiKey:invalid});assert.equal(result.status,400);assert.ok(!result.body.includes(invalid));
   }
   assert.equal(h.calls,0);assert.equal((await h.request('/api/try-on',IMAGES)).status,400);assert.equal(h.calls,1);

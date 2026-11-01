@@ -19,12 +19,14 @@ const verificationMessages=Object.freeze({
 const configuredLimit=process.env.YOUCAM_MAX_TASKS;
 const parsedLimit=configuredLimit===undefined||configuredLimit.trim()===''?1:Number(configuredLimit);
 const limit=Number.isFinite(parsedLimit)?Math.min(3,Math.max(0,Math.floor(parsedLimit))):1;
-// RFC6750 section2.1 b64token grammar. Syntax checks do not verify a key or
-// establish whether an opaque token was copied in full.
+// Transport guard only. The provider documents an opaque API key, not a
+// character alphabet. Keep printable ASCII unchanged; reject whitespace and
+// control characters before placing it in the fixed Authorization header.
+// Loading a key does not establish authentication or completeness.
 function bearerToken(value){
  if(typeof value!=='string')throw Error('Invalid local key.');
  const token=value.trim();
- if(!token||token.length>4096||!/^[-A-Za-z0-9._~+/]+=*$/.test(token))throw Error('Invalid local key.');
+ if(!token||token.length>4096||!/^[\x21-\x7e]+$/.test(token))throw Error('Invalid local key.');
  return token;
 }
 // Only bounded numeric statuses and our own static labels may reach the UI.

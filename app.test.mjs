@@ -71,7 +71,7 @@ test('failed local connect keeps the password cleared and uses a key-free error 
 
 test('invalid local key input is cleared without sending it anywhere',async()=>{
  const requests=[];const f=await fixture(async path=>{requests.push(path);return response({live:false,localConnectEnabled:true,remainingTaskCap:1});});
- const invalid='Synthetic?InvalidToken';f.node('#apiKey').value=invalid;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ const invalid='Synthetic\u0000InvalidToken';f.node('#apiKey').value=invalid;await f.node('#connectForm').onsubmit({preventDefault(){}});
  assert.equal(f.node('#apiKey').value,'');assert.equal(requests.includes('/api/connect'),false);assert.equal(requests.includes('/api/try-on'),false);
  assert.ok(!f.node('#connectStatus').textContent.includes(invalid));assert.equal(f.storageWrites.length,0);
 });
@@ -126,14 +126,14 @@ test('already-live initial status is accurate and delayed initial refresh preser
  assert.equal(delayed.node('#status').textContent,activity);assert.match(activity,/Illustration only/);
 });
 
-test('local Bearer grammar rejects masked and non-ASCII input while allowing valid opaque periods and padding',async()=>{
+test('local transport checks reject unsafe characters without changing accepted punctuation',async()=>{
  const calls=[];const f=await fixture(async(path,options)=>{calls.push({path,options});return response({live:true,localConnectEnabled:true,remainingTaskCap:0});});
- for(const invalid of ['Synthetic****Masked12345','Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic=InternalPadding12345','Bearer SyntheticPrefixedKey12345']){
+ for(const invalid of ['Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic InternalSpace12345','Synthetic\u0000Control12345','Bearer SyntheticPrefixedKey12345']){
   f.node('#apiKey').value=invalid;await f.node('#connectForm').onsubmit({preventDefault(){}});
   assert.match(f.node('#connectStatus').textContent,/format is invalid/);assert.ok(!f.node('#connectStatus').textContent.includes(invalid));assert.equal(f.node('#apiKey').value,'');
  }
  assert.equal(calls.some(c=>c.path==='/api/connect'),false);
- const valid='Synthetic.Token...-._~+/12345==';f.node('#apiKey').value=` ${valid}\n`;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ const valid='Synthetic.Token:!@#$%...=Inside*"[]';f.node('#apiKey').value=` ${valid}\n`;await f.node('#connectForm').onsubmit({preventDefault(){}});
  assert.deepEqual(JSON.parse(calls.find(c=>c.path==='/api/connect').options.body),{apiKey:valid});
  assert.equal(calls.some(c=>c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
 });
@@ -167,15 +167,13 @@ test('local format diagnostics identify only static reasons without exposing val
  const calls=[];const f=await fixture(async path=>{calls.push(path);return response({live:false,localConnectEnabled:true,remainingTaskCap:0});});
  for(const [token,reason] of [
   ['Bearer SyntheticPrefixOnly12345',/Bearer prefix/],
-  ['"SyntheticQuotedSecret12345"',/Quotation marks/],
-  ['Synthetic****Masked12345',/masking or truncation/],
-  ['Synthetic…Truncated12345',/masking or truncation/],
+  ['Synthetic…Truncated12345',/non-ASCII character/],
   ['Synthetic InternalSpace12345',/Whitespace is present inside/],
   ['SyntheticéUnicode12345',/non-ASCII character/],
   ['Synthetic\u0000Control12345',/control character/],
-  ['x'.repeat(4097),/exceeds the supported size limit/],
-  ['Synthetic=MiddlePadding12345',/Padding is present before the end/],
-  ['Synthetic:OtherSyntax12345',/outside standard Bearer token syntax/]
+  ['Synthetic\u007fControl12345',/control character/],
+  ['Synthetic\tWhitespace12345',/Whitespace is present inside/],
+  ['x'.repeat(4097),/exceeds the supported size limit/]
  ]){
   f.node('#apiKey').value=token;await f.node('#connectForm').onsubmit({preventDefault(){}});const text=f.node('#connectStatus').textContent;
   assert.match(text,reason);assert.match(text,/No connection or provider request was made/);assert.ok(!text.includes(token));assert.ok(!text.includes('Synthetic'));assert.ok(!/\d/.test(text),'diagnostics must not contain input lengths or offsets');assert.equal(f.node('#apiKey').value,'');
@@ -183,8 +181,16 @@ test('local format diagnostics identify only static reasons without exposing val
  assert.deepEqual(calls,['/api/status']);assert.equal(f.storageWrites.length,0);
 });
 
-test('a short nonempty RFC6750 token is sent unchanged without an invented minimum length',async()=>{
+test('a short nonempty token is sent unchanged without an invented minimum length',async()=>{
  const calls=[];let connected=false;const f=await fixture(async(path,options)=>{calls.push({path,options});if(path==='/api/connect')connected=true;return response({live:connected,localConnectEnabled:true,remainingTaskCap:0});});
  f.node('#apiKey').value='SYNTH';await f.node('#connectForm').onsubmit({preventDefault(){}});
  const request=calls.find(c=>c.path==='/api/connect');assert.ok(request);assert.deepEqual(JSON.parse(request.options.body),{apiKey:'SYNTH'});assert.equal(f.node('#apiKey').value,'');assert.equal(calls.some(c=>c.path==='/api/verify-key'||c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('every graphic ASCII character reaches local connect unchanged without automatic verification or generation',async()=>{
+ const token=Array.from({length:94},(_,i)=>String.fromCharCode(0x21+i)).join('');
+ const calls=[];let connected=false;const f=await fixture(async(path,options)=>{calls.push({path,options});if(path==='/api/connect')connected=true;return response({live:connected,localConnectEnabled:true,remainingTaskCap:0});});
+ assert.deepEqual(calls.map(c=>c.path),['/api/status']);f.node('#apiKey').value=` \t${token}\r\n`;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ const request=calls.find(c=>c.path==='/api/connect');assert.ok(request);assert.deepEqual(JSON.parse(request.options.body),{apiKey:token});assert.equal(f.node('#apiKey').value,'');
+ assert.match(f.node('#connectStatus').textContent,/has not been verified with YouCam/);assert.equal(f.node('#generate').disabled,true);assert.equal(calls.some(c=>c.path==='/api/verify-key'||c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
 });
