@@ -125,3 +125,40 @@ test('already-live initial status is accurate and delayed initial refresh preser
  initial.resolve(response(ready));await new Promise(r=>setImmediate(r));
  assert.equal(delayed.node('#status').textContent,activity);assert.match(activity,/Illustration only/);
 });
+
+test('local Bearer grammar rejects masked and non-ASCII input while allowing valid opaque periods and padding',async()=>{
+ const calls=[];const f=await fixture(async(path,options)=>{calls.push({path,options});return response({live:true,localConnectEnabled:true,remainingTaskCap:0});});
+ for(const invalid of ['Synthetic****Masked12345','Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic=InternalPadding12345','Bearer SyntheticPrefixedKey12345']){
+  f.node('#apiKey').value=invalid;await f.node('#connectForm').onsubmit({preventDefault(){}});
+  assert.match(f.node('#connectStatus').textContent,/format is invalid/);assert.ok(!f.node('#connectStatus').textContent.includes(invalid));assert.equal(f.node('#apiKey').value,'');
+ }
+ assert.equal(calls.some(c=>c.path==='/api/connect'),false);
+ const valid='Synthetic.Token...-._~+/12345==';f.node('#apiKey').value=` ${valid}\n`;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.deepEqual(JSON.parse(calls.find(c=>c.path==='/api/connect').options.body),{apiKey:valid});
+ assert.equal(calls.some(c=>c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('zero-cap UI requires explicit read-only verification and suppresses duplicate checks and generation',async()=>{
+ const calls=[];const gate=deferred();const f=await fixture(async(path,options)=>{calls.push({path,options});if(path==='/api/verify-key')return gate.promise;return response({live:true,localConnectEnabled:true,remainingTaskCap:0});});
+ assert.equal(f.node('#generate').disabled,true);assert.equal(f.node('#verifyKey').disabled,false);assert.deepEqual(calls.map(c=>c.path),['/api/status']);
+ f.node('#demo').onclick();assert.equal(f.node('#generate').disabled,true);f.node('#clear').onclick();assert.equal(f.node('#generate').disabled,true);
+ const pending=f.node('#verifyKey').onclick();assert.equal(f.node('#verifyKey').disabled,true);await f.node('#verifyKey').onclick();assert.equal(calls.filter(c=>c.path==='/api/verify-key').length,1);
+ gate.resolve(response({authenticated:true,remainingTaskCap:0}));await pending;assert.match(f.node('#verifyStatus').textContent,/Key authenticated by the read-only/);
+ await f.node('#form').onsubmit({preventDefault(){}});assert.equal(calls.some(c=>c.path==='/api/try-on'),false);assert.equal(f.node('#generate').disabled,true);assert.equal(f.storageWrites.length,0);
+});
+
+test('verification UI never echoes unknown response content',async()=>{
+ const secret='SyntheticUnexpectedVerificationToken12345';const f=await fixture(async path=>path==='/api/status'?response({live:true,localConnectEnabled:true,remainingTaskCap:0}):{ok:false,status:500,json:async()=>({error:secret})});
+ await f.node('#verifyKey').onclick();assert.match(f.node('#verifyStatus').textContent,/HTTP 500/);assert.ok(!f.node('#verifyStatus').textContent.includes(secret));assert.equal(f.node('#verifyKey').disabled,true);
+});
+
+test('reloaded pages restore safe verification states and block duplicate checks at zero cap',async()=>{
+ for(const state of ['pending','authenticated','failed']){
+  const calls=[];const untrusted='SyntheticStatusMessageMustNeverAppear';
+  const f=await fixture(async path=>{calls.push(path);return response({live:true,localConnectEnabled:true,remainingTaskCap:0,verification:{state,message:untrusted}});});
+  assert.equal(f.node('#verifyKey').disabled,true);await f.node('#verifyKey').onclick();assert.deepEqual(calls,['/api/status']);
+  assert.equal(f.node('#generate').disabled,true);assert.ok(!f.node('#verifyStatus').textContent.includes(untrusted));assert.ok(f.node('#verifyStatus').textContent.length>0);
+  assert.match(f.node('#connectStatus').textContent,/generation is disabled/);assert.ok(!f.node('#connectStatus').textContent.includes('one generation'));
+  if(state==='authenticated'){assert.match(f.node('#verifyStatus').textContent,/Key authenticated/);assert.match(f.node('#status').textContent,/authentication was confirmed/);}
+ }
+});

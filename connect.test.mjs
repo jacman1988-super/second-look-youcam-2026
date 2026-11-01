@@ -7,6 +7,7 @@ import http from 'node:http';
 const KEY_A='SyntheticKeyOnlyForTests_A_1234567890';
 const KEY_B='SyntheticKeyOnlyForTests_B_1234567890';
 const IMAGES={consent:true,src_file_url:'https://example.test/adult.jpg',ref_file_url:'https://example.test/outfit.jpg'};
+const UNVERIFIED={state:'not_requested',message:'Key has not been verified. Verification runs only when you press Verify key.'};
 let fixtureNumber=0;
 
 async function withServer(run,{enabled=true,provider}={}) {
@@ -62,7 +63,7 @@ function noSecret(response,...secrets) {
 
 localTest('local key entry is disabled by default and cannot activate provider access',async h=>{
   const before=await h.request('/api/status');
-  assert.deepEqual(before.json,{live:false,remainingTaskCap:1,localConnectEnabled:false});
+  assert.deepEqual(before.json,{live:false,remainingTaskCap:1,localConnectEnabled:false,verification:UNVERIFIED});
   const result=await h.request('/api/connect',{method:'POST',payload:{apiKey:KEY_A}});
   assert.equal(result.status,403);noSecret(result,KEY_A);
   assert.equal((await h.request('/api/status')).json.live,false);
@@ -70,11 +71,11 @@ localTest('local key entry is disabled by default and cannot activate provider a
 },{enabled:false});
 
 localTest('opt-in connection and status return no key and make no provider requests',async h=>{
-  assert.deepEqual((await h.request('/api/status')).json,{live:false,remainingTaskCap:1,localConnectEnabled:true});
+  assert.deepEqual((await h.request('/api/status')).json,{live:false,remainingTaskCap:1,localConnectEnabled:true,verification:UNVERIFIED});
   const result=await h.request('/api/connect',{method:'POST',payload:{apiKey:KEY_A},headers:{Origin:`http://127.0.0.1:${h.port}`}});
   assert.equal(result.status,200);assert.deepEqual(result.json,{live:true,remainingTaskCap:1});noSecret(result,KEY_A);
   const status=await h.request('/api/status');
-  assert.deepEqual(status.json,{live:true,remainingTaskCap:1,localConnectEnabled:true});noSecret(status,KEY_A);
+  assert.deepEqual(status.json,{live:true,remainingTaskCap:1,localConnectEnabled:true,verification:UNVERIFIED});noSecret(status,KEY_A);
   assert.equal(h.providerCalls.length,0);
   assert.ok(!h.logs.join('\n').includes(KEY_A));
 });

@@ -2,7 +2,7 @@
 
 A local outfit exploration prototype for second-hand shopping: visualize a possible style, compare it with the original photo, then check the details an AI image cannot establish.
 
-**Status:** 28 automated tests pass using controlled provider stubs. One real YouCam request was attempted and rejected; no provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
+**Status:** 45 automated tests pass using controlled provider stubs. Two authorized live-generation attempts failed: one request was rejected and another returned a local error whose cause is unconfirmed. No provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
 
 ## What it does
 
@@ -30,7 +30,7 @@ Run tests:
 node --test
 ```
 
-`npm test` is equivalent. The 28 passing tests cover request validation, disabled live mode, local credential handoff, cross-site/Host guards, task-cap preservation and interrupted browser workflows. Provider responses are stubbed; these tests are not evidence of a successful live generation.
+`npm test` is equivalent. Tests cover request validation, disabled live mode, local credential handoff, cross-site/Host guards, task-cap preservation, read-only authentication diagnostics and interrupted browser workflows. Provider responses are stubbed; these tests are not evidence of a successful live generation.
 
 ## Optional private key entry
 
@@ -52,7 +52,9 @@ YOUCAM_ALLOW_LOCAL_CONNECT=yes YOUCAM_MAX_TASKS=1 node server.mjs
 
 In the local page, expand **Connect YouCam locally** and paste the key yourself into its password field. Do not send it through chat, an agent, an issue, source code or a screenshot. The field clears after every attempt. It is sent only to this same-origin loopback server and held in server RAM; it is never echoed, logged or written to a file by the app. Stopping the server discards that runtime copy.
 
-Loading a key enables the live path but does **not** verify the credential with YouCam, send image URLs, create a task or consume API units. `/api/connect` and `/api/status` make no provider requests. Status returns only booleans and the remaining local generation cap. A loaded key is not a successful provider test.
+Loading a key enables the live path but does **not** verify the credential with YouCam, send image URLs, create a task or consume API units. `/api/connect` and `/api/status` make no provider requests. Status returns only safe local state, never the key. A loaded key is not a successful provider test.
+
+For authentication diagnostics without image generation, start the server with `YOUCAM_MAX_TASKS=0`. This zero limit is enforced by both the server and interface. After loading a key, **Verify key (no image generation)** makes one authenticated GET to the documented V2 `/credit/feature-cost` metadata endpoint. It sends no image URLs, creates no task and does not reset the generation cap. The interface receives only authentication status or a bounded diagnostic; no provider body is exposed. One verification attempt is allowed per key load. Successful authentication does not establish a free-unit balance or a working Clothes V4 result.
 
 The existing environment-key route is also supported: securely supply `YOUCAM_API_KEY` to the process and set `YOUCAM_ENABLE_LIVE=yes`. Never hard-code a key. If using that route, manage and remove the secret from your own shell/environment separately; stopping Node does not clear the parent shell.
 
