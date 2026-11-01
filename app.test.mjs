@@ -128,7 +128,7 @@ test('already-live initial status is accurate and delayed initial refresh preser
 
 test('local transport checks reject unsafe characters without changing accepted punctuation',async()=>{
  const calls=[];const f=await fixture(async(path,options)=>{calls.push({path,options});return response({live:true,localConnectEnabled:true,remainingTaskCap:0});});
- for(const invalid of ['Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic InternalSpace12345','Synthetic\u0000Control12345','Bearer SyntheticPrefixedKey12345']){
+ for(const invalid of ['Synthetic…Truncated12345','SyntheticéNonASCII12345','Synthetic\u0000Control12345','Bearer SyntheticPrefixedKey12345']){
   f.node('#apiKey').value=invalid;await f.node('#connectForm').onsubmit({preventDefault(){}});
   assert.match(f.node('#connectStatus').textContent,/format is invalid/);assert.ok(!f.node('#connectStatus').textContent.includes(invalid));assert.equal(f.node('#apiKey').value,'');
  }
@@ -168,11 +168,9 @@ test('local format diagnostics identify only static reasons without exposing val
  for(const [token,reason] of [
   ['Bearer SyntheticPrefixOnly12345',/Bearer prefix/],
   ['Synthetic…Truncated12345',/non-ASCII character/],
-  ['Synthetic InternalSpace12345',/Whitespace is present inside/],
   ['SyntheticéUnicode12345',/non-ASCII character/],
   ['Synthetic\u0000Control12345',/control character/],
   ['Synthetic\u007fControl12345',/control character/],
-  ['Synthetic\tWhitespace12345',/Whitespace is present inside/],
   ['x'.repeat(4097),/exceeds the supported size limit/]
  ]){
   f.node('#apiKey').value=token;await f.node('#connectForm').onsubmit({preventDefault(){}});const text=f.node('#connectStatus').textContent;
@@ -193,4 +191,22 @@ test('every graphic ASCII character reaches local connect unchanged without auto
  assert.deepEqual(calls.map(c=>c.path),['/api/status']);f.node('#apiKey').value=` \t${token}\r\n`;await f.node('#connectForm').onsubmit({preventDefault(){}});
  const request=calls.find(c=>c.path==='/api/connect');assert.ok(request);assert.deepEqual(JSON.parse(request.options.body),{apiKey:token});assert.equal(f.node('#apiKey').value,'');
  assert.match(f.node('#connectStatus').textContent,/has not been verified with YouCam/);assert.equal(f.node('#generate').disabled,true);assert.equal(calls.some(c=>c.path==='/api/verify-key'||c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('copy-format line wraps, tabs and NBSP are removed locally while every other character is preserved',async()=>{
+ const token='Synthetic:!@#$%="[]*/=Value';const pasted=' \tSynthetic:\r\n!@#$%=\u00a0"[]*\t/\n=Value ';
+ const calls=[];let connected=false;const f=await fixture(async(path,options)=>{calls.push({path,options});if(path==='/api/connect')connected=true;return response({live:connected,localConnectEnabled:true,remainingTaskCap:0});});
+ f.node('#apiKey').value=pasted;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ const request=calls.find(c=>c.path==='/api/connect');assert.ok(request);assert.deepEqual(JSON.parse(request.options.body),{apiKey:token});
+ assert.match(f.node('#connectStatus').textContent,/Whitespace and line breaks were removed locally/);assert.match(f.node('#connectStatus').textContent,/has not been verified with YouCam/);assert.ok(!f.node('#connectStatus').textContent.includes(token));assert.ok(!f.node('#connectStatus').textContent.includes('Synthetic'));
+ assert.equal(f.node('#apiKey').value,'');assert.equal(f.node('#generate').disabled,true);assert.equal(calls.some(c=>c.path==='/api/verify-key'||c.path==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('pasted Bearer prefixes and Authorization headers are rejected before whitespace cleanup',async()=>{
+ const calls=[];const f=await fixture(async path=>{calls.push(path);return response({live:false,localConnectEnabled:true,remainingTaskCap:0});});
+ for(const value of [' Bearer\tSynthetic:Secret12345','\nAuthorization:\u00a0Bearer SyntheticSecret12345']){
+  f.node('#apiKey').value=value;await f.node('#connectForm').onsubmit({preventDefault(){}});const text=f.node('#connectStatus').textContent;
+  assert.match(text,/Authorization header or Bearer prefix/);assert.match(text,/Paste only the API key itself/);assert.ok(!text.includes('were removed locally'));assert.ok(!text.includes('Synthetic'));assert.equal(f.node('#apiKey').value,'');
+ }
+ assert.deepEqual(calls,['/api/status']);assert.equal(f.storageWrites.length,0);
 });

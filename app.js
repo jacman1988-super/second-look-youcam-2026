@@ -17,28 +17,30 @@ const connectErrors=new Map([
 ]);
 async function connectError(r){let category='The local server rejected this request.';try{const d=await r.json();category=connectErrors.get(d?.error)||category;}catch{}const code=Number.isInteger(r.status)&&r.status>=100&&r.status<=599?r.status:'unknown';return `Local connection failed (HTTP ${code}). ${category} No generation was started.`;}
 function keyFormatIssue(token){
- // Transport checks only: the provider does not document a key alphabet.
+ // Transport checks after explicit whitespace-only copy-format cleanup.
  // Static reasons never include the token, a fragment, or its length.
- if(/^Bearer\s/i.test(token))return 'A Bearer prefix is present. Paste the API key alone.';
- if(/[\x09-\x0d\x20]/.test(token))return 'Whitespace is present inside the key. Paste the API key itself as one token.';
  if(/[^\x00-\x7f]/.test(token))return 'A non-ASCII character is present. Copy the original API secret without changing its characters.';
  if(/[\x00-\x1f\x7f]/.test(token))return 'A control character is present. Copy the original API secret again.';
  if(token.length>4096)return 'The input exceeds the supported size limit. Paste only the API secret.';
  return null;
 }
 refresh(true);
-$('#connectForm').onsubmit=async e=>{e.preventDefault();if($('#connectButton').disabled)return;const input=$('#apiKey');let apiKey=input.value.trim();input.value='';$('#connectButton').disabled=true;
+$('#connectForm').onsubmit=async e=>{e.preventDefault();if($('#connectButton').disabled)return;const input=$('#apiKey');let apiKey=input.value;input.value='';$('#connectButton').disabled=true;let formattingNotice='';const connectMessage=text=>$('#connectStatus').textContent=formattingNotice+text;
  try{
-  if(!apiKey){$('#connectStatus').textContent='Paste your YouCam API key, then choose Load key locally. No generation was started.';return;}
-  const issue=keyFormatIssue(apiKey);if(issue){$('#connectStatus').textContent=`The local key format is invalid. ${issue} No connection or provider request was made by this attempt. No generation was started.`;return;}
-  $('#connectStatus').textContent='Connecting to the local server. No generation is being started.';
+  // Detect pasted headers before removing any copy-format whitespace.
+  if(/^\s*(?:Authorization\s*:|Bearer\s+)/i.test(apiKey)){connectMessage('The local key format is invalid. An Authorization header or Bearer prefix is present. Paste only the API key itself. No connection or provider request was made by this attempt. No generation was started.');return;}
+  if(/\s/.test(apiKey))formattingNotice='Whitespace and line breaks were removed locally from the pasted copy. ';
+  apiKey=apiKey.replace(/\s/g,'');
+  if(!apiKey){connectMessage('Paste your YouCam API key, then choose Load key locally. No generation was started.');return;}
+  const issue=keyFormatIssue(apiKey);if(issue){connectMessage(`The local key format is invalid. ${issue} No connection or provider request was made by this attempt. No generation was started.`);return;}
+  connectMessage('Connecting to the local server. No generation is being started.');
   const request=fetch('/api/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey})});apiKey='';
-  const r=await request;if(!r.ok){$('#connectStatus').textContent=await connectError(r);return;}
+  const r=await request;if(!r.ok){connectMessage(await connectError(r));return;}
   keyVerificationAttempted=false;$('#verifyStatus').textContent='Key has not been verified. Verification is a separate read-only action.';
-  const config=await refresh();if(!config?.live){$('#connectStatus').textContent='The local connection request was accepted, but readiness could not be confirmed. No generation was started.';return;}
-  $('#connectStatus').textContent='Key loaded into local server RAM. It has not been verified with YouCam. No provider request or generation was made.';
+  const config=await refresh();if(!config?.live){connectMessage('The local connection request was accepted, but readiness could not be confirmed. No generation was started.');return;}
+  connectMessage('Key loaded into local server RAM. It has not been verified with YouCam. No provider request or generation was made.');
   status(remainingTaskCap===0?'Local key loaded. Image generation is disabled. Verify key is a separate read-only check.':'Local key loaded. Choose Preview with YouCam only when ready to start the separate manual test. No generation has been started by loading the key.');
- }catch{$('#connectStatus').textContent='Could not reach the local connection endpoint. Check that the local server is running. No generation was started.';}
+ }catch{connectMessage('Could not reach the local connection endpoint. Check that the local server is running. No generation was started.');}
  finally{apiKey='';input.value='';$('#connectButton').disabled=false;}
 };
 function safeVerificationError(text){return typeof text==='string'&&[

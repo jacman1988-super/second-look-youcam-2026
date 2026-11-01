@@ -121,7 +121,7 @@ export const server=http.createServer(async(req,res)=>{
   }
   const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css'};
   if(req.method!=='GET'||!files[url.pathname])return json(res,404,{error:'Not found'});
-  const file=files[url.pathname];res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript':'text/css','Content-Security-Policy':"default-src 'self'; img-src 'self' https: blob: data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});res.end(await readFile(resolve(root,file)));
+  const file=files[url.pathname];res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript':'text/css','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; img-src 'self' https: blob: data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});res.end(await readFile(resolve(root,file)));
  }catch(e){json(res,400,{error:e instanceof YouCamDiagnosticError?e.message:e.message==='Invalid URL'?'Enter two valid public HTTPS image links.':safeErrors.has(e.message)?e.message:'The local request could not be completed. Check the local settings before retrying.'});}
 });
 if(process.argv[1]===fileURLToPath(import.meta.url)){const port=Number(process.env.PORT)||4177;server.listen(port,'127.0.0.1',()=>console.log('Second Look: http://127.0.0.1:'+port+' (live mode '+(live?'enabled':'disabled')+')'));}
