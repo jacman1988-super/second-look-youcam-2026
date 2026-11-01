@@ -45,14 +45,17 @@ test('offline walkthrough restores controls after an interrupted request',async(
 test('local connect clears the password before awaiting a request and never starts generation',async()=>{
  const key='SyntheticKeyForBrowserTest_1234567890';const gate=deferred();const requests=[];let statusCalls=0;
  const f=await fixture(async(path,options)=>{requests.push({path,options});if(path==='/api/status')return response({live:++statusCalls>1,localConnectEnabled:true,remainingTaskCap:1});if(path==='/api/connect')return gate.promise;throw Error('No generation or provider request is allowed.');});
- f.node('#apiKey').value=key;
+ f.node('#apiKey').value=` \t${key}\r\n `;
  const pending=f.node('#connectForm').onsubmit({preventDefault(){}});
  assert.equal(f.node('#apiKey').value,'');assert.equal(f.node('#connectButton').disabled,true);
+ await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.equal(requests.filter(r=>r.path==='/api/connect').length,1);
  const connect=requests.find(r=>r.path==='/api/connect');assert.deepEqual(JSON.parse(connect.options.body),{apiKey:key});
  gate.resolve(response({live:true,remainingTaskCap:1}));await pending;
  assert.equal(f.node('#apiKey').value,'');assert.equal(f.node('#connectButton').disabled,false);
  assert.equal(requests.some(r=>r.path==='/api/try-on'),false);
  assert.match(f.node('#connectStatus').textContent,/not been verified with YouCam/);
+ assert.match(f.node('#status').textContent,/Local key loaded/);
  assert.ok(!f.node('#connectStatus').textContent.includes(key));assert.equal(f.storageWrites.length,0);
 });
 
@@ -71,4 +74,54 @@ test('invalid local key input is cleared without sending it anywhere',async()=>{
  f.node('#apiKey').value='short';await f.node('#connectForm').onsubmit({preventDefault(){}});
  assert.equal(f.node('#apiKey').value,'');assert.equal(requests.includes('/api/connect'),false);assert.equal(requests.includes('/api/try-on'),false);
  assert.ok(!f.node('#connectStatus').textContent.includes('short'));assert.equal(f.storageWrites.length,0);
+});
+
+test('blank and invalid local input give distinct safe feedback without requests',async()=>{
+ const calls=[];const f=await fixture(async path=>{calls.push(path);return response({live:false,localConnectEnabled:true,remainingTaskCap:1});});
+ f.node('#apiKey').value=' \t\r\n ';await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.match(f.node('#connectStatus').textContent,/Paste your YouCam API key/);
+ f.node('#apiKey').value='Synthetic\u0000InvalidKey123';await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.match(f.node('#connectStatus').textContent,/format is invalid/);
+ assert.equal(calls.filter(p=>p!=='/api/status').length,0);assert.equal(f.node('#apiKey').value,'');assert.equal(f.storageWrites.length,0);
+});
+
+test('connect errors expose only HTTP status and whitelisted static categories',async()=>{
+ const key='SyntheticSecretMustNeverAppear123';let reply;
+ const calls=[];const f=await fixture(async path=>{calls.push(path);return path==='/api/status'?response({live:false,localConnectEnabled:true,remainingTaskCap:1}):reply;});
+ for(const [code,error,expected] of [
+  [403,'Cross-site request blocked.',/cross-site guard/],
+  [400,'Local connection could not be completed. Check the key and try again. No provider request was made.',/input format or request size/],
+  [500,key,/local server rejected/]
+ ]){
+  reply={ok:false,status:code,json:async()=>({error})};f.node('#apiKey').value=key;await f.node('#connectForm').onsubmit({preventDefault(){}});
+  const text=f.node('#connectStatus').textContent;assert.match(text,new RegExp(`HTTP ${code}`));assert.match(text,expected);assert.ok(!text.includes(key));assert.equal(f.node('#apiKey').value,'');
+ }
+ assert.equal(calls.some(p=>p==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('network failure has safe feedback and cannot echo the rejected secret',async()=>{
+ const key='SyntheticNetworkFailureSecret123';
+ const f=await fixture(async path=>{if(path==='/api/status')return response({live:false,localConnectEnabled:true,remainingTaskCap:1});throw Error(key);});
+ f.node('#apiKey').value=key;await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.match(f.node('#connectStatus').textContent,/Could not reach the local connection endpoint/);
+ assert.ok(!f.node('#connectStatus').textContent.includes(key));assert.equal(f.node('#apiKey').value,'');assert.equal(f.node('#connectButton').disabled,false);assert.equal(f.storageWrites.length,0);
+});
+
+test('failed status refresh after accepted connection cannot show readiness or success',async()=>{
+ let statusCalls=0,jsonReads=0;const calls=[];
+ const f=await fixture(async path=>{calls.push(path);if(path==='/api/connect')return response({live:true,remainingTaskCap:1});if(++statusCalls===1)return response({live:false,localConnectEnabled:true,remainingTaskCap:1});return {ok:false,status:403,json:async()=>{jsonReads++;return {live:true};}};});
+ f.node('#apiKey').value='SyntheticStatusFailureKey12345';await f.node('#connectForm').onsubmit({preventDefault(){}});
+ assert.match(f.node('#mode').textContent,/STATUS UNAVAILABLE/);assert.match(f.node('#connectStatus').textContent,/readiness could not be confirmed/);
+ assert.ok(!f.node('#connectStatus').textContent.includes('Key loaded'));assert.equal(jsonReads,0);assert.equal(calls.some(p=>p==='/api/try-on'),false);assert.equal(f.storageWrites.length,0);
+});
+
+test('already-live initial status is accurate and delayed initial refresh preserves newer activity',async()=>{
+ const calls=[];const ready={live:true,localConnectEnabled:true,remainingTaskCap:1};
+ const f=await fixture(async path=>{calls.push(path);return response(ready);});
+ assert.match(f.node('#status').textContent,/Local key loaded in server RAM/);assert.match(f.node('#status').textContent,/Opening this page starts no generation/);
+ assert.match(f.node('#mode').textContent,/READY FOR MANUAL TEST/);assert.deepEqual(calls,['/api/status']);
+ const initial=deferred();const delayed=await fixture(async()=>initial.promise);
+ delayed.node('#demo').onclick();const activity=delayed.node('#status').textContent;
+ initial.resolve(response(ready));await new Promise(r=>setImmediate(r));
+ assert.equal(delayed.node('#status').textContent,activity);assert.match(activity,/Illustration only/);
 });

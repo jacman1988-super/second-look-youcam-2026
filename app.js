@@ -1,14 +1,27 @@
 const $=s=>document.querySelector(s);let timer;let generation=0;
 const status=t=>$('#status').textContent=t;
-async function refresh(){try{const d=await(await fetch('/api/status')).json();$('#mode').textContent=d.live?'YOUCAM API · READY FOR MANUAL TEST':'LOCAL PROTOTYPE · NO API CALLS';$('#localConnectPanel').hidden=!d.localConnectEnabled;$('#localCap').textContent=`Remaining local generation cap: ${d.remainingTaskCap}.`;return d;}catch{status('Local server unavailable. Start with npm start.');}}
-refresh();
-$('#connectForm').onsubmit=async e=>{e.preventDefault();const input=$('#apiKey');let apiKey=input.value;input.value='';$('#connectButton').disabled=true;
+async function refresh(initial=false){try{const r=await fetch('/api/status');if(!r.ok)throw Error('Local status rejected.');const d=await r.json();if(!d||typeof d.live!=='boolean')throw Error('Invalid local status.');$('#mode').textContent=d.live?'YOUCAM API · READY FOR MANUAL TEST':'LOCAL PROTOTYPE · NO API CALLS';$('#localConnectPanel').hidden=!d.localConnectEnabled;$('#localCap').textContent=`Remaining local generation cap: ${d.remainingTaskCap}.`;if(initial&&generation===0&&d.live)status('Local key loaded in server RAM; it has not been verified with YouCam. Opening this page starts no generation.');return d;}catch{$('#mode').textContent='LOCAL SERVER STATUS UNAVAILABLE';$('#localCap').textContent='Local generation cap could not be confirmed.';if(!initial||generation===0)status('Local server status could not be confirmed. No new generation was started.');}}
+const connectErrors=new Map([
+ ['Only localhost requests are allowed.','The local host guard blocked this request.'],
+ ['Cross-origin request blocked.','The same-origin guard blocked this request.'],
+ ['Cross-site request blocked.','The cross-site guard blocked this request.'],
+ ['Local key entry is disabled. No provider request was made.','Local key entry is disabled in this server.'],
+ ['Use the local connection form. No provider request was made.','The request content type was rejected.'],
+ ['Local connection could not be completed. Check the key and try again. No provider request was made.','The local input format or request size was rejected.']
+]);
+async function connectError(r){let category='The local server rejected this request.';try{const d=await r.json();category=connectErrors.get(d?.error)||category;}catch{}const code=Number.isInteger(r.status)&&r.status>=100&&r.status<=599?r.status:'unknown';return `Local connection failed (HTTP ${code}). ${category} No generation was started.`;}
+refresh(true);
+$('#connectForm').onsubmit=async e=>{e.preventDefault();if($('#connectButton').disabled)return;const input=$('#apiKey');let apiKey=input.value.trim();input.value='';$('#connectButton').disabled=true;
  try{
-  if(apiKey.length<16||apiKey.length>4096||/[\u0000-\u001f\u007f]/.test(apiKey)||!apiKey.trim())throw Error('Invalid local key input.');
+  if(!apiKey){$('#connectStatus').textContent='Paste your YouCam API key, then choose Load key locally. No generation was started.';return;}
+  if(apiKey.length<16||apiKey.length>4096||/[\u0000-\u001f\u007f]/.test(apiKey)){$('#connectStatus').textContent='The local key format is invalid. Use 16–4096 characters without control characters. No generation was started.';return;}
+  $('#connectStatus').textContent='Connecting to the local server. No generation is being started.';
   const request=fetch('/api/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey})});apiKey='';
-  const r=await request;if(!r.ok)throw Error('Local connection failed.');
-  await refresh();$('#connectStatus').textContent='Key loaded into local server RAM. It has not been verified with YouCam. No provider request or generation was made.';
- }catch{$('#connectStatus').textContent='Local connection could not be completed. Check the key and local server settings. No generation was started.';}
+  const r=await request;if(!r.ok){$('#connectStatus').textContent=await connectError(r);return;}
+  const config=await refresh();if(!config?.live){$('#connectStatus').textContent='The local connection request was accepted, but readiness could not be confirmed. No generation was started.';return;}
+  $('#connectStatus').textContent='Key loaded into local server RAM. It has not been verified with YouCam. No provider request or generation was made.';
+  status('Local key loaded. Choose Preview with YouCam only when ready to start the separate manual test. No generation has been started by loading the key.');
+ }catch{$('#connectStatus').textContent='Could not reach the local connection endpoint. Check that the local server is running. No generation was started.';}
  finally{apiKey='';input.value='';$('#connectButton').disabled=false;}
 };
 $('#demo').onclick=()=>{generation++;clearTimeout(timer);$('#original').hidden=true;$('#overlay').hidden=true;$('#illustration').hidden=false;$('.empty').hidden=true;$('#compare').disabled=true;$('#generate').disabled=false;$('#previewLabel').textContent='OFFLINE WALKTHROUGH';status('Illustration only — this walkthrough sends no photos and starts no API task. Any previously started task may still finish.');};
