@@ -8,14 +8,14 @@ const response=data=>({ok:true,json:async()=>data});
 async function fixture(fetch){
  const nodes=new Map();
  const node=selector=>{if(!nodes.has(selector))nodes.set(selector,{hidden:false,value:'',style:{},textContent:'',disabled:false,checked:false,removeAttribute(name){delete this[name];},reset(){node('#person').value='';node('#garment').value='';node('#consent').checked=false;}});return nodes.get(selector);};
- let timers=0;
+ let timers=0;const callbacks=[];
  const storageWrites=[];
  const storage={getItem(){return null;},removeItem(){},setItem(...args){storageWrites.push(args);throw Error('Persistence is forbidden in this fixture.');}};
- const context=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[]},fetch,URL,Blob,localStorage:storage,sessionStorage:storage,setTimeout(){timers++;return timers;},clearTimeout(){}});
+ const context=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[]},fetch,URL,Blob,localStorage:storage,sessionStorage:storage,setTimeout(callback){timers++;callbacks.push(callback);return timers;},clearTimeout(){}});
  vm.runInContext(readFileSync(new URL('./app.js',import.meta.url),'utf8'),context);
  await new Promise(r=>setImmediate(r));
  node('#person').value='https://example.com/person.jpg';node('#garment').value='https://example.com/outfit.jpg';node('#consent').checked=true;
- return {node,storageWrites,get timers(){return timers;}};
+ return {node,storageWrites,get timers(){return timers;},async runNextTimer(){const callback=callbacks.shift();assert.equal(typeof callback,'function');await callback();}};
 }
 
 test('clearing while status loads prevents a later generation request',async()=>{
@@ -209,4 +209,22 @@ test('pasted Bearer prefixes and Authorization headers are rejected before white
   assert.match(text,/Authorization header or Bearer prefix/);assert.match(text,/Paste only the API key itself/);assert.ok(!text.includes('were removed locally'));assert.ok(!text.includes('Synthetic'));assert.equal(f.node('#apiKey').value,'');
  }
  assert.deepEqual(calls,['/api/status']);assert.equal(f.storageWrites.length,0);
+});
+
+test('a completed cap-one task refreshes the zero cap without losing its result or re-enabling Preview',async()=>{
+ const calls=[];let started=false;const f=await fixture(async path=>{calls.push(path);if(path==='/api/status')return response({live:true,localConnectEnabled:true,remainingTaskCap:started?0:1});if(path==='/api/try-on'){started=true;return response({taskId:'synthetic-completed-task'});}if(path.startsWith('/api/result?'))return response({status:'success',url:'https://example.test/synthetic-result.jpg'});throw Error('Unexpected request.');});
+ await f.node('#form').onsubmit({preventDefault(){}});assert.equal(f.node('#generate').disabled,true);assert.match(f.node('#localCap').textContent,/cap: 0/);
+ await f.runNextTimer();assert.equal(f.node('#result').src,'https://example.test/synthetic-result.jpg');assert.equal(f.node('#result').hidden,false);assert.equal(f.node('#compare').disabled,false);assert.match(f.node('#status').textContent,/Preview ready/);assert.equal(f.node('#generate').disabled,true);
+ assert.equal(calls.filter(p=>p==='/api/status').length,4);f.node('#demo').onclick();assert.equal(f.node('#generate').disabled,true);f.node('#clear').onclick();assert.equal(f.node('#generate').disabled,true);
+ await f.node('#form').onsubmit({preventDefault(){}});assert.equal(calls.filter(p=>p==='/api/try-on').length,1);assert.equal(f.node('#generate').disabled,true);
+});
+
+test('failed safe status reads after acceptance preserve a genuine result and exhausted local cap',async()=>{
+ let started=false;const f=await fixture(async path=>{if(path==='/api/status')return started?{ok:false,status:503,json:async()=>({error:'Synthetic status failure'})}:response({live:true,remainingTaskCap:1});if(path==='/api/try-on'){started=true;return response({taskId:'synthetic-task'});}return response({status:'success',url:'https://example.test/synthetic-result.jpg'});});
+ await f.node('#form').onsubmit({preventDefault(){}});await f.runNextTimer();assert.equal(f.node('#result').hidden,false);assert.match(f.node('#status').textContent,/Preview ready/);assert.equal(f.node('#generate').disabled,true);f.node('#demo').onclick();assert.equal(f.node('#generate').disabled,true);
+});
+
+test('successful explicit verification replaces stale unverified main status without a generation',async()=>{
+ const calls=[];const f=await fixture(async path=>{calls.push(path);return path==='/api/verify-key'?response({authenticated:true,remainingTaskCap:0}):response({live:true,localConnectEnabled:true,remainingTaskCap:0});});
+ await f.node('#verifyKey').onclick();assert.match(f.node('#status').textContent,/Read-only key authentication confirmed/);assert.match(f.node('#connectStatus').textContent,/authentication was confirmed/);assert.equal(f.node('#generate').disabled,true);assert.equal(calls.some(p=>p==='/api/try-on'),false);
 });

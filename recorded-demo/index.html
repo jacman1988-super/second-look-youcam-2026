@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; style-src 'self' file:; script-src 'self' file:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Compare a saved YouCam Clothes V4 result with its original synthetic input, then make a thoughtful buying checklist. Works offline.">
+  <title>Second Look — A recorded possibility</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="#main" class="brand"><span class="brand-mark" aria-hidden="true">↻</span> Second Look</a>
+    <span class="pill"><span aria-hidden="true">●</span> OFFLINE RECORDED DEMO</span>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="title">
+      <div>
+        <p class="eyebrow">A SECOND LIFE. A FIRST LOOK.</p>
+        <h1 id="title">Love it twice.<br><em>Look a little closer.</em></h1>
+        <p class="intro">One original. One recorded possibility. Compare the details, then ask the questions a preview can’t answer.</p>
+      </div>
+      <aside class="record-card" aria-label="Demo status">
+        <span class="record-icon" aria-hidden="true">↗</span>
+        <p class="record-heading">Recorded YouCam Clothes V4 result, not live generation</p>
+        <p>Saved from a completed test on 1 November 2026. This page displays the original files; it starts no new generation.</p>
+        <span class="record-date">SYNTHETIC ADULT INPUT · ACTUAL SAVED OUTPUT</span>
+      </aside>
+    </section>
+
+    <section class="workspace" aria-labelledby="compare-title">
+      <div class="comparison">
+        <div class="section-top"><p class="eyebrow">01 / LOOK CLOSER</p><span class="tiny-label">FULL IMAGE · NO RETOUCHING</span></div>
+        <h2 id="compare-title">A different outfit.<br>The same decision to make.</h2>
+        <p class="section-intro">Slide between the original synthetic image and the saved YouCam preview.</p>
+        <figure class="compare-figure">
+          <div class="image-stage" id="imageStage">
+            <img class="compare-image" id="original" src="./assets/synthetic-adult-person-input.png" width="1024" height="1536" alt="Original AI-generated fictional adult wearing a grey T-shirt and navy jeans on a white background">
+            <div class="result-layer" id="resultLayer">
+              <img class="compare-image" id="result" src="./assets/youcam-clothes-v4-output.jpg" width="1024" height="1536" alt="Recorded YouCam Clothes V4 output showing the synthetic adult wearing a teal dress">
+            </div>
+            <div class="compare-divider" id="compareDivider" aria-hidden="true"><span>↔</span></div>
+            <span class="image-badge badge-result" id="resultBadge">Recorded result</span>
+            <span class="image-badge badge-original" id="originalBadge">Original</span>
+          </div>
+          <figcaption>Both files are unchanged copies. The slider reveals each image; it does not generate or edit an image.</figcaption>
+        </figure>
+        <div class="range-heading"><label for="compare">Compare original / recorded result</label><output id="revealValue" for="compare">50% result</output></div>
+        <input id="compare" type="range" min="0" max="100" step="1" value="50" disabled aria-describedby="compareHelp imageStatus" aria-valuetext="50% recorded result revealed">
+        <div class="view-buttons" aria-label="Comparison views">
+          <button type="button" class="view-button" data-reveal="0" aria-pressed="false" disabled>Original</button>
+          <button type="button" class="view-button" data-reveal="50" aria-pressed="true" disabled>Split view</button>
+          <button type="button" class="view-button" data-reveal="100" aria-pressed="false" disabled>Recorded result</button>
+        </div>
+        <p class="hint" id="compareHelp">Drag the slider, or use the arrow keys when it is focused. Left reveals the original; right reveals more of the result.</p>
+        <p id="imageStatus" class="image-status" role="status">Loading the two local image files…</p>
+        <noscript><p class="notice">JavaScript is needed for the slider, checklist counter and note download. Both saved images remain visible in the split view.</p></noscript>
+      </div>
+
+      <aside class="decision" aria-labelledby="decision-title">
+        <p class="eyebrow">02 / BEFORE YOU BUY</p>
+        <h2 id="decision-title">Good style.<br>Better questions.</h2>
+        <p class="decision-intro">A preview can spark an idea. Let the listing and the seller confirm the facts.</p>
+        <fieldset>
+          <legend>Your buying checklist</legend>
+          <label class="check"><input type="checkbox" name="buying-check" value="measurements"><span><strong>Measure the real garment.</strong><small>Compare chest, waist, length and sleeve measurements with something you own.</small></span></label>
+          <label class="check"><input type="checkbox" name="buying-check" value="condition"><span><strong>Ask about its second life.</strong><small>Check condition, repairs, fabric and care details with the seller.</small></span></label>
+          <label class="check"><input type="checkbox" name="buying-check" value="listing"><span><strong>Check the listing details.</strong><small>Review seller photographs, exact colour, price and return terms.</small></span></label>
+        </fieldset>
+        <div class="verdict"><p id="checkCount" role="status">0 / 3 checks complete</p><p id="checkMessage">Keep the listing photographs as your source of truth.</p></div>
+        <label class="notes-label" for="notes">A note for your next step <span>(optional)</span></label>
+        <textarea id="notes" rows="4" maxlength="4000" placeholder="For example: Ask the seller for the waist measurement."></textarea>
+        <button type="button" class="export-button" id="export">Save my decision notes <span aria-hidden="true">↓</span></button>
+        <p class="hint">Downloads a text file to your device. Your checklist and note stay in this page’s memory until you close or reload it. No photo URLs are included automatically.</p>
+        <p id="exportStatus" class="export-status" role="status"></p>
+        <div class="pause-note"><span aria-hidden="true">✳</span><p>A little curiosity.<br>A thoughtful choice.</p></div>
+      </aside>
+    </section>
+
+    <section class="context-grid" aria-label="What this preview can and cannot show">
+      <article><span class="context-number">01</span><h3>Style, with perspective.</h3><p>This is an AI visualization. Fit, size, fabric, colour, print and body details may change. It does not establish garment condition or authenticity.</p></article>
+      <article><span class="context-number">02</span><h3>A fictional person. A real test.</h3><p>The original is an AI-generated fictional adult, created without a real person’s reference photo. The teal dress is an invented synthetic garment. The result is the saved output from YouCam Clothes V4.</p></article>
+      <article><span class="context-number">03</span><h3>A pause before purchase.</h3><p>No body scores or beauty grades. No measured environmental benefit or reduction in returns is claimed. Actual measurements and seller evidence still matter.</p></article>
+    </section>
+
+    <section class="source-note" aria-labelledby="source-title">
+      <div><p class="eyebrow">SOURCE & DISCLOSURE</p><h2 id="source-title">A recorded example,<br>with its limits in view.</h2></div>
+      <div>
+        <p>Concept, interface and code were prepared with AI coding assistance from Codex. The input images were generated with OpenAI’s image generation tool. The outfit result was generated by YouCam Clothes V4 and saved locally; no image pixels have been changed for this viewer.</p>
+        <p>The <a href="https://github.com/jacman1988-super/second-look-youcam-2026" target="_blank" rel="noopener noreferrer">MIT-licensed functional Node source</a> is a separate local build. Running live generation requires your own permitted API key and suitable input permissions. This recorded viewer has no live API or generation features.</p>
+        <p class="source-limit">This viewer is supplementary evidence, not a claim that it alone satisfies contest judging access requirements. No submission or award is claimed. The source link opens an external site; this viewer otherwise uses only its local files.</p>
+      </div>
+    </section>
+  </main>
+  <footer><strong>↻ Second Look</strong><span>Wear the possibility. Verify the details.</span><span>PRIVATE LOCAL COPY · RECORDED 01 NOV 2026</span></footer>
+  <script src="./app.js"></script>
+</body>
+</html>

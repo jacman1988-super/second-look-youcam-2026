@@ -1,87 +1,97 @@
 # Second Look
 
-A local outfit exploration prototype for second-hand shopping: visualize a possible style, compare it with the original photo, then check the details an AI image cannot establish.
+A local outfit exploration prototype for second-hand shopping: compare a possible style with the original image, then check the facts an AI image cannot establish.
 
-**Status:** 51 automated tests pass using controlled provider stubs. Two authorized live-generation attempts failed: one request was rejected and another returned a local error whose cause is unconfirmed. No provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
+**Observed validation:** One real YouCam Clothes V4 `full_body` task completed successfully on 1 November 2026. Its 1024 x 1536 JPEG was saved and visually inspected, and the original/result slider worked. This is one completed example, not an accuracy, fit or reliability benchmark. There is no contest submission or award claim.
+
+**Automated validation:** 54 main tests use controlled provider stubs (23 frontend, 19 diagnostics and 12 server/connection/cache tests). A separate seven-test suite checks the recorded viewer. Stubbed tests do not establish model quality. A real read-only V2 feature-cost request also confirmed authentication separately from image generation.
 
 ## What it does
 
-- Takes two permitted public HTTPS image URLs: a full-body source image and an outfit reference.
+- Takes two permitted public HTTPS image URLs: a full-body source and an outfit reference.
 - Implements YouCam Clothes VTO `cloth-v4` task creation and result polling through a loopback-only Node server.
-- Provides an original/AI comparison slider after a genuine result is available.
-- Keeps a practical checklist for measurements, condition, repairs, fabric, seller photos and return terms.
-- Downloads decision notes locally without photo URLs.
+- Displays an actual successful result with an original/AI comparison slider.
+- Adds a checklist for actual measurements, condition, repairs, fabric, seller photographs and return terms.
+- Downloads decision notes locally without automatically adding photo URLs.
 
-The preview is a style visualization, **not** a prediction or proof of fit, size, colour, condition or authenticity. There is no body scoring, beauty grading, measured environmental benefit or claimed reduction in returns. Keep the listing photographs and actual measurements as the source of truth.
+The live app's offline walkthrough remains a labelled illustration. The separate [recorded example](recorded-demo/index.html) displays the genuine saved provider output, clearly labelled as recorded rather than live generation.
 
-## Run locally
+This is a style visualization, not a prediction or proof of fit, size, colour, fabric, condition, comfort or authenticity. Garment, print and body details may change. No body scoring, beauty grading, measured environmental benefit or reduction in returns is claimed. Keep actual measurements and seller evidence as the source of truth.
 
-Use Node.js 20 or newer. There are no third-party dependencies and no installation/build step.
+## Run the functional local build
+
+Use Node.js 20 or newer. No dependencies, installation or build step is required.
 
 ```sh
 node server.mjs
 ```
 
-Open `http://127.0.0.1:4177`. `npm start` runs the same server if npm is available. It binds only to `127.0.0.1`; default mode makes no provider requests. Opening the page, checking status or exploring the offline walkthrough does not create a generation.
+Open `http://127.0.0.1:4177`. `npm start` runs the same server. It binds only to `127.0.0.1`. Default mode makes no provider requests. Opening the page, reading local status or using the labelled illustration does not create a task.
 
-Run tests:
+Main tests:
 
 ```sh
-node --test
+node --test app.test.mjs server.test.mjs connect.test.mjs diagnostics.test.mjs
 ```
 
-`npm test` is equivalent. Tests cover request validation, disabled live mode, local credential handoff, cross-site/Host guards, task-cap preservation, read-only authentication diagnostics and interrupted browser workflows. Provider responses are stubbed; these tests are not evidence of a successful live generation.
+Recorded-viewer tests:
 
-## Optional private key entry
+```sh
+node --test recorded-demo/viewer.test.mjs
+```
 
-Local key entry is **disabled by default**. Enable it explicitly only after reviewing the provider terms, image permissions and intended test cost. Keep the process cap at one generation.
+`node --test` or `npm test` discovers both suites: 61 tests in total. Provider calls in tests are stubbed; test requests target only an ephemeral loopback server or an in-process fixture.
+
+## Human key entry and read-only authentication
+
+Live use requires your own permitted YouCam API key, appropriate image permissions and a suitable allowance. Local credential entry is disabled by default. For read-only authentication diagnostics, explicitly enable it with generation disabled:
 
 PowerShell:
 
 ```powershell
 $env:YOUCAM_ALLOW_LOCAL_CONNECT='yes'
-$env:YOUCAM_MAX_TASKS='1'
+$env:YOUCAM_MAX_TASKS='0'
 node server.mjs
 ```
 
 POSIX shell:
 
 ```sh
-YOUCAM_ALLOW_LOCAL_CONNECT=yes YOUCAM_MAX_TASKS=1 node server.mjs
+YOUCAM_ALLOW_LOCAL_CONNECT=yes YOUCAM_MAX_TASKS=0 node server.mjs
 ```
 
-In the local page, expand **Connect YouCam locally** and paste the key yourself into its password field. Do not send it through chat, an agent, an issue, source code or a screenshot. The field clears after every attempt. Copying spaces and line breaks are removed locally, with an explicit notice; all other key characters are preserved. Pasted Authorization/Bearer headers are identified before cleanup. The resulting key is sent only to this same-origin loopback server and held in server RAM; it is never echoed, logged or written to a file by the app. Stopping the server discards that runtime copy. The server transport guard accepts a nonempty opaque key up to4096characters, preserving all visible ASCII punctuation. It rejects any remaining whitespace, control and non-ASCII characters before constructing the fixed Authorization header, rather than inventing the provider's key alphabet or minimum length. Invalid input produces only a static reason, never the key, a fragment, its length or an offset. Only the explicit read-only provider check can establish authentication; local loading does not verify a credential.
+Open **Connect YouCam locally** and paste the API key yourself into its password field. Supply only the key, not an Authorization header. Do not send it through chat, an agent, an issue, source files or screenshots. Copy-format whitespace is removed locally with an explicit notice; all other characters are preserved. Nonempty graphic ASCII is accepted up to the local size limit, without inventing a provider key alphabet. Control and non-ASCII characters are rejected after whitespace cleanup.
 
-Local HTML, JavaScript and CSS use `Cache-Control: no-store`. The HTML references a versioned script URL so earlier cached credential-form code cannot survive this update.
+The field clears immediately and after the attempt. The key goes only to the same-origin loopback server and remains in server RAM. The app never echoes, logs or writes it to a file. Stopping that server discards its runtime copy. Loading it makes no provider request, verifies nothing and does not reset the generation cap.
 
-Loading a key enables the live path but does **not** verify the credential with YouCam, send image URLs, create a task or consume API units. `/api/connect` and `/api/status` make no provider requests. Status returns only safe local state, never the key. A loaded key is not a successful provider test.
+**Verify key (no image generation)** is a separate explicit action. It makes one GET to the documented V2 `/credit/feature-cost?page_size=20` endpoint, sends no image URLs and creates no image task. The interface receives only authentication status or a bounded static diagnostic. One verification attempt is allowed per key load. Safe verification state survives page reload while the server remains running; no token or upstream body is returned. Authentication does not establish account allowance or a working Clothes V4 result.
 
-For authentication diagnostics without image generation, start the server with `YOUCAM_MAX_TASKS=0`. This zero limit is enforced by both the server and interface. After loading a key, **Verify key (no image generation)** makes one authenticated GET to the documented V2 `/credit/feature-cost` metadata endpoint. It sends no image URLs, creates no task and does not reset the generation cap. The interface receives only authentication status or a bounded diagnostic; no provider body is exposed. One verification attempt is allowed per key load. Successful authentication does not establish a free-unit balance or a working Clothes V4 result.
+An environment-key route is also supported: securely supply `YOUCAM_API_KEY` and `YOUCAM_ENABLE_LIVE=yes` to the process. Never hard-code a key. If you choose that route, manage and remove the secret from your own shell separately; stopping Node does not erase its parent shell.
 
-The existing environment-key route is also supported: securely supply `YOUCAM_API_KEY` to the process and set `YOUCAM_ENABLE_LIVE=yes`. Never hard-code a key. If using that route, manage and remove the secret from your own shell/environment separately; stopping Node does not clear the parent shell.
+## Deliberate image generation
 
-## One deliberate live test
+For a separately permitted live test, start an explicitly authorized process with `YOUCAM_MAX_TASKS=1` instead of 0. Enter the key privately, confirm the current account allowance, provider cost and permissions, supply the two public HTTPS image links, check consent and press **Preview with YouCam** once. The provider retrieves those links; this prototype does not upload local files.
 
-1. Confirm the applicable provider terms, available allowance and current cost before starting. The app does not check balance or billing settings.
-2. Supply two public **HTTPS** image URLs without embedded credentials. Use only images you have permission to share with the provider. This prototype does not upload local files; the provider retrieves those URLs.
-3. Confirm the image-permission checkbox, then choose **Preview with YouCam** once.
-4. Wait for the task result. Do not create duplicate tasks while one is processing. Use the comparison only after a genuine output appears.
-5. Review the real image and the verification checklist; stop the local server when finished.
+Wait for the actual result. Do not create duplicate tasks while processing. The default cap allows one started attempt per process; a rejected attempt still consumes it. Reconnecting a key does not reset it. Accepted and completed tasks refresh safe local status, preserving the exhausted cap and the real result. Clear/demo controls do not re-enable generation at cap 0. This is a process guard, not a provider billing guarantee. Do not restart simply to bypass a consumed limit.
 
-The default process cap allows **one generation attempt**. Reconnecting or replacing a key does not reset it, and a rejected started request still consumes the local attempt. This is a process guard, not a provider billing guarantee. Do not raise it or restart merely to bypass the limit. Clearing the page or selecting the walkthrough does not cancel a task already started at YouCam or delete provider copies.
+Clearing the page or selecting the illustration does not cancel an already started provider task or delete provider copies. YouCam has its own processing and retention rules. The app does not inspect balance, subscriptions or payment settings.
 
-## Synthetic test inputs
+## Saved example and provenance
 
-The planned controlled-test fixtures belong in [assets/youcam-test-2026/](assets/youcam-test-2026/). They are **AI-generated, fictional input images**, not provider output, a real-person photograph or proof of a completed YouCam request. Their presence does not imply that hosting or processing has occurred. Any actual test must use permitted, accessible source/reference URLs.
+Open `recorded-demo/index.html` directly with its adjacent assets. It needs no server, credential, account or internet connection. The comparison, checklist and local notes work on unchanged local copies. The source link is an intentional external navigation; the viewer otherwise loads only relative local resources and blocks connections.
+
+The original adult and garment reference in `assets/youcam-test-2026/` are fictional AI-generated inputs, not real customer photographs. The recorded output is the actual saved YouCam Clothes V4 JPEG. No image pixels were edited, cropped, resized or recompressed for packaging; browsers scale them for display. See [safe provenance](recorded-demo/PROVENANCE.txt) for model, date, dimensions and hashes.
+
+The recorded example is supplementary evidence. It does not offer live generation and is not claimed to satisfy contest judging access on its own. Judges receive source, assets and functional local setup instructions; that build requires their own permitted API key and input permissions. Requiring such a key is disclosed, without guaranteeing that this alone fulfils unrestricted judging-access requirements.
 
 ## Privacy and deployment boundary
 
-**Never publicly deploy this credential-holding server.** Publishing source code is different from exposing a running server. It is a local, single-user prototype, not a production service with accounts, authentication or a credential vault.
+**Do not publicly deploy the credential-holding Node server.** Publishing source is different from exposing a running service. It is a local single-user prototype, not a production account system or credential vault.
 
-Host, Origin and cross-site guards restrict the local API. No key is served to the browser, saved in exports or included in error responses. Photos load only after the relevant user action; decision-note exports contain no image URLs. YouCam has its own processing and retention policies. Clear photos before screenshots and keep all credentials, private codes and authorization material out of the repository and demo.
+Host, Origin and cross-site guards protect local API routes. Local HTML, JavaScript and CSS use `Cache-Control: no-store`, and the script URL is versioned. Errors expose only bounded codes/static categories, never provider messages, keys, headers or signed media URLs. Decision-note exports omit image links. The optional viewer note contains whatever its user types; it stays in page memory until exported or the page closes/reloads.
 
 ## AI contribution and licence
 
-OpenAI Codex prepared the concept, interface, code and documentation, with independent agent review and automated tests. YouCam is intended to produce the outfit visualization; no live-result claim is made before an observed provider result. The source licence is [MIT](LICENSE); third-party services remain subject to their own terms.
+OpenAI Codex prepared the concept, interface, code, tests and documentation, with independent agent review. The two synthetic input images were created with OpenAI image generation without a real person's reference image. YouCam Clothes V4 generated the recorded outfit visualization. Source code is [MIT-licensed](LICENSE); third-party services remain subject to their own terms.
 
-Official references: [YouCam Clothes VTO API](https://docs.perfectcorp.com/reference/ai_clothes) · [hackathon resources](https://youcam-api-skin-ai-ecommerce.devpost.com/resources).
+Official references: [Clothes VTO API](https://docs.perfectcorp.com/reference/ai_clothes) · [Hackathon rules](https://youcam-api-skin-ai-ecommerce.devpost.com/rules) · [Resources](https://youcam-api-skin-ai-ecommerce.devpost.com/resources).

@@ -1,0 +1,30 @@
+SECOND LOOK — RECORDED EXAMPLE PROVENANCE
+
+Date: 1 November 2026
+Provider/model: YouCam Clothes Virtual Try-On V4, category full_body
+Result: one genuine completed task, saved and visually inspected.
+No image pixels were changed for this package. Original files are copied
+byte-for-byte; browser display scaling does not modify those files.
+
+Output: assets/youcam-clothes-v4-output.jpg
+Format: JPEG, 1024 x 1536
+Bytes: 223949
+SHA-256: 36bc849e0ebac23857871760184a6c50fbc1c9f2d5499718a6029c436c625523
+
+Source input: assets/synthetic-adult-person-input.png
+AI-generated fictional adult, made without a real person's reference image.
+Format: PNG, 1024 x 1536
+Bytes: 1512065
+SHA-256: d729c018fe4969390ad48f383e1c8f830d0384b027d6cc2306f0e0fcef3a24ac
+
+Garment reference: ../assets/youcam-test-2026/teal-linen-dress-input.png
+AI-generated unbranded fictional dress, used as the reference image.
+Format: PNG, 1024 x 1536
+Bytes: 2054871
+SHA-256: bde7df09b3294ab0d9f1d267c1ce455ebd0dba1e46d996e079a44805513b5e5d
+
+Input images: OpenAI image generation. Concept/code: Codex AI assistance.
+The recorded viewer makes no API requests. It supplements the functional
+local Node build, which requires the user's own permitted API key.
+The example is not proof of fit, size, fabric, colour, condition or accuracy
+across other images, and no contest award or final submission is claimed.

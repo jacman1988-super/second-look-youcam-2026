@@ -1,0 +1,8 @@
+{
+  "name": "second-look-recorded-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline recorded-result viewer; no live generation.",
+  "scripts": { "test": "node --test viewer.test.mjs" },
+  "engines": { "node": ">=20" }
+}
