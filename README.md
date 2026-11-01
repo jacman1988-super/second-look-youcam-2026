@@ -16,6 +16,10 @@ A local outfit exploration prototype for second-hand shopping: compare a possibl
 
 The live app's offline walkthrough remains a labelled illustration. The separate [recorded example](recorded-demo/index.html) displays the genuine saved provider output, clearly labelled as recorded rather than live generation.
 
+Public recorded-result viewer: [Open the recorded demonstration](https://second-look-youcam-jacada-2026.adamekjacek.chatgpt.site).
+
+Public demonstration video: [Watch the Second Look demonstration](https://youtu.be/RwKl4a-7glY).
+
 This is a style visualization, not a prediction or proof of fit, size, colour, fabric, condition, comfort or authenticity. Garment, print and body details may change. No body scoring, beauty grading, measured environmental benefit or reduction in returns is claimed. Keep actual measurements and seller evidence as the source of truth.
 
 ## Run the functional local build
