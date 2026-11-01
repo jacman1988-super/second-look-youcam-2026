@@ -2,7 +2,7 @@
 
 A local outfit exploration prototype for second-hand shopping: visualize a possible style, compare it with the original photo, then check the details an AI image cannot establish.
 
-**Status:** 17 automated tests pass using controlled provider stubs. A real YouCam API generation has **not** been completed. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
+**Status:** 28 automated tests pass using controlled provider stubs. One real YouCam request was attempted and rejected; no provider image has been produced, so live generation is **not validated**. The offline walkthrough is a labelled illustration, not a YouCam result. No contest submission or award is claimed here.
 
 ## What it does
 
@@ -30,7 +30,7 @@ Run tests:
 node --test
 ```
 
-`npm test` is equivalent. The 17 passing tests cover request validation, disabled live mode, local credential handoff, cross-site/Host guards, task-cap preservation and interrupted browser workflows. Provider responses are stubbed; these tests are not evidence of a successful live generation.
+`npm test` is equivalent. The 28 passing tests cover request validation, disabled live mode, local credential handoff, cross-site/Host guards, task-cap preservation and interrupted browser workflows. Provider responses are stubbed; these tests are not evidence of a successful live generation.
 
 ## Optional private key entry
 
@@ -78,6 +78,6 @@ Host, Origin and cross-site guards restrict the local API. No key is served to t
 
 ## AI contribution and licence
 
-OpenAI Codex prepared the concept, interface, code and documentation, with independent agent review and automated tests. YouCam is intended to produce the outfit visualization; no live-result claim is made before an observed provider result. The source licence draft is [MIT](LICENSE); third-party services remain subject to their own terms.
+OpenAI Codex prepared the concept, interface, code and documentation, with independent agent review and automated tests. YouCam is intended to produce the outfit visualization; no live-result claim is made before an observed provider result. The source licence is [MIT](LICENSE); third-party services remain subject to their own terms.
 
 Official references: [YouCam Clothes VTO API](https://docs.perfectcorp.com/reference/ai_clothes) · [hackathon resources](https://youcam-api-skin-ai-ecommerce.devpost.com/resources).

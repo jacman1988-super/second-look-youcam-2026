@@ -10,9 +10,25 @@ let live=!!key && process.env.YOUCAM_ENABLE_LIVE==='yes';
 const localConnectEnabled=process.env.YOUCAM_ALLOW_LOCAL_CONNECT==='yes';
 const jobs=new Set(); let started=0;
 const limit=Math.min(3,Math.max(0,Number(process.env.YOUCAM_MAX_TASKS)||1));
+// Only bounded numeric statuses and our own static labels may reach the UI.
+// Provider messages, tokens, URLs, response bodies and headers are never echoed.
+class YouCamRequestError extends Error{
+ constructor(httpStatus,apiStatus,errorCode){
+  const code=value=>Number.isInteger(value)&&value>=100&&value<=599?value:null;
+  const httpCode=code(httpStatus),apiCode=code(apiStatus),effective=httpCode>=400?httpCode:apiCode;
+  let category='unclassified provider rejection';
+  if(errorCode==='InvalidAccessToken'||effective===401)category='authentication rejected';
+  else if(effective===403)category='access denied';
+  else if(effective===400||effective===422)category='request validation rejected';
+  else if(effective===404)category='endpoint not found';
+  else if(effective===429)category='rate or quota limit';
+  else if(effective>=500)category='provider service failure';
+  super(`YouCam rejected the request (HTTP ${httpCode??'unknown'}; API ${apiCode??'unknown'}; ${category}). No automatic retry was made.`);
+ }
+}
 async function api(path,options={}){
  const r=await fetch(host+path,{...options,headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(25000)});
- const d=await r.json(); if(!r.ok||d.status>=400)throw Error('YouCam rejected the request. Check your key, free unit balance and image requirements in the console.');return d.data;
+ const d=await r.json().catch(()=>null);if(!r.ok||d?.status>=400)throw new YouCamRequestError(r.status,d?.status,d?.error_code);return d?.data;
 }
 export function validateTask(body){
  if(!body||body.consent!==true)throw Error('Confirm permission to use both images.');
@@ -59,6 +75,6 @@ export const server=http.createServer(async(req,res)=>{
   const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css'};
   if(req.method!=='GET'||!files[url.pathname])return json(res,404,{error:'Not found'});
   const file=files[url.pathname];res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript':'text/css','Content-Security-Policy':"default-src 'self'; img-src 'self' https: blob: data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});res.end(await readFile(resolve(root,file)));
- }catch(e){json(res,400,{error:e.message==='Invalid URL'?'Enter two valid public HTTPS image links.':safeErrors.has(e.message)?e.message:'The local request could not be completed. Check the local settings before retrying.'});}
+ }catch(e){json(res,400,{error:e instanceof YouCamRequestError?e.message:e.message==='Invalid URL'?'Enter two valid public HTTPS image links.':safeErrors.has(e.message)?e.message:'The local request could not be completed. Check the local settings before retrying.'});}
 });
 if(process.argv[1]===fileURLToPath(import.meta.url)){const port=Number(process.env.PORT)||4177;server.listen(port,'127.0.0.1',()=>console.log('Second Look: http://127.0.0.1:'+port+' (live mode '+(live?'enabled':'disabled')+')'));}
